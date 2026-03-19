@@ -299,10 +299,15 @@
       const challenge = await generateChallenge(verifier);
       sessionStorage.setItem('pkce_verifier', verifier);
 
+      const state = crypto.randomUUID();
+      sessionStorage.setItem('pkce_state', state);
+
       const params = new URLSearchParams({
         client_id: CLIENT_ID,
         redirect_uri: window.location.origin + '/callback',
         response_type: 'code',
+        scope: 'openid',
+        state,
         code_challenge: challenge,
         code_challenge_method: 'S256',
       });
@@ -323,10 +328,21 @@
     const subtitleEl = document.querySelector('#callback-page .subtitle');
 
     const code = new URLSearchParams(window.location.search).get('code');
+    const returnedState = new URLSearchParams(window.location.search).get('state');
+    const savedState = sessionStorage.getItem('pkce_state');
+    sessionStorage.removeItem('pkce_state');
+
     if (!code) {
       subtitleEl.textContent = 'No code found';
       setStatus(status, 'error',
         `<div class="label">Error</div>No authorization code in URL.`);
+      return;
+    }
+
+    if (savedState && returnedState !== savedState) {
+      subtitleEl.textContent = 'State mismatch';
+      setStatus(status, 'error',
+        `<div class="label">Error</div>State parameter mismatch — possible CSRF.`);
       return;
     }
 
