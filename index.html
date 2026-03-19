@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0c0c0e;
+    --surface: #13131a;
+    --border: #1e1e2e;
+    --accent: #7cffb2;
+    --accent-dim: rgba(124,255,178,0.08);
+    --text: #e8e8f0;
+    --muted: #5a5a72;
+    --error: #ff6b6b;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-weight: 300;
+  }
+
+  body {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    padding: 1rem;
+    overflow: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,255,178,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,255,178,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 400px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 2.5rem;
+    animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .logo {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 1.6rem;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.25rem;
+  }
+
+  .subtitle {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 2rem;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 1.75rem 0;
+    position: relative;
+  }
+
+  .divider span {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--surface);
+    padding: 0 0.75rem;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* OAuth button */
+  .oauth-btn {
+    width: 100%;
+    padding: 0.85rem 1.25rem;
+    background: var(--accent-dim);
+    border: 1px solid rgba(124,255,178,0.2);
+    border-radius: 2px;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .oauth-btn:hover {
+    background: rgba(124,255,178,0.13);
+    border-color: rgba(124,255,178,0.4);
+    transform: translateY(-1px);
+  }
+
+  .oauth-btn:active { transform: translateY(0); }
+
+  .oauth-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .oauth-btn .spinner {
+    width: 14px; height: 14px;
+    border: 1.5px solid rgba(124,255,178,0.3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  .oauth-btn.loading .spinner { display: block; }
+  .oauth-btn.loading .btn-text { opacity: 0.6; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Status box */
+  .status {
+    display: none;
+    margin-top: 1.25rem;
+    padding: 0.85rem 1rem;
+    border-radius: 2px;
+    font-size: 0.72rem;
+    line-height: 1.7;
+    border: 1px solid;
+  }
+
+  .status.success {
+    display: block;
+    background: rgba(124,255,178,0.06);
+    border-color: rgba(124,255,178,0.25);
+    color: var(--accent);
+  }
+
+  .status.error {
+    display: block;
+    background: rgba(255,107,107,0.06);
+    border-color: rgba(255,107,107,0.25);
+    color: var(--error);
+  }
+
+  .status .label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.7;
+    margin-bottom: 0.35rem;
+  }
+
+  .user-info { display: flex; flex-direction: column; gap: 0.2rem; }
+
+  .user-row { display: flex; gap: 0.5rem; }
+  .user-row .key { color: var(--muted); min-width: 80px; }
+  .user-row .val { color: var(--accent); }
+
+  .footer {
+    margin-top: 2rem;
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  .footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+  .footer a:hover { color: var(--accent); }
+
+  /* Page toggle */
+  #login-page, #callback-page { display: none; }
+  #login-page.active, #callback-page.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- LOGIN PAGE -->
+  <div id="login-page" class="active">
+    <div class="logo">callback</div>
+    <div class="subtitle">OAuth 2.0 · PKCE Test</div>
+
+    <button class="oauth-btn" id="login-btn" onclick="login()">
+      <div class="spinner"></div>
+      <span class="btn-text">Sign in with Callback</span>
+    </button>
+
+    <div class="status" id="login-status"></div>
+
+    <div class="footer">
+      Uses PKCE · S256 challenge · <a href="https://callback.best" target="_blank">callback.best</a>
+    </div>
+  </div>
+
+  <!-- CALLBACK PAGE -->
+  <div id="callback-page">
+    <div class="logo">callback</div>
+    <div class="subtitle">Exchanging token…</div>
+
+    <div class="status" id="callback-status"></div>
+
+    <div class="footer" style="margin-top:1.5rem">
+      <a href="/" onclick="goHome(event)">← back to login</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const CLIENT_ID = 'cb_live_RPHdNUWtDkwspdcH0lpk578d';
+
+  // ── PKCE helpers ──────────────────────────────────────────
+  function generateVerifier() {
+    const array = new Uint8Array(64);
+    crypto.getRandomValues(array);
+    return btoa(String.fromCharCode(...array))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
+
+  async function generateChallenge(verifier) {
+    const data = new TextEncoder().encode(verifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
+
+  // ── Page routing ──────────────────────────────────────────
+  function showPage(id) {
+    document.querySelectorAll('#login-page,#callback-page')
+      .forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function goHome(e) {
+    e.preventDefault();
+    history.replaceState({}, '', '/');
+    showPage('login-page');
+  }
+
+  function setStatus(el, type, html) {
+    el.className = 'status ' + type;
+    el.innerHTML = html;
+  }
+
+  // ── Login ─────────────────────────────────────────────────
+  async function login() {
+    const btn = document.getElementById('login-btn');
+    const status = document.getElementById('login-status');
+    btn.disabled = true;
+    btn.classList.add('loading');
+    setStatus(status, '', '');
+
+    try {
+      const verifier = generateVerifier();
+      const challenge = await generateChallenge(verifier);
+      sessionStorage.setItem('pkce_verifier', verifier);
+
+      const params = new URLSearchParams({
+        client_id: CLIENT_ID,
+        redirect_uri: window.location.origin + '/callback',
+        response_type: 'code',
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+      });
+
+      window.location.href = 'https://callback.best/api/authorize?' + params;
+    } catch (err) {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      setStatus(status, 'error',
+        `<div class="label">Error</div>${err.message}`);
+    }
+  }
+
+  // ── Callback handler ──────────────────────────────────────
+  async function handleCallback() {
+    showPage('callback-page');
+    const status = document.getElementById('callback-status');
+    const subtitleEl = document.querySelector('#callback-page .subtitle');
+
+    const code = new URLSearchParams(window.location.search).get('code');
+    if (!code) {
+      subtitleEl.textContent = 'No code found';
+      setStatus(status, 'error',
+        `<div class="label">Error</div>No authorization code in URL.`);
+      return;
+    }
+
+    const verifier = sessionStorage.getItem('pkce_verifier');
+    sessionStorage.removeItem('pkce_verifier');
+
+    if (!verifier) {
+      subtitleEl.textContent = 'Session error';
+      setStatus(status, 'error',
+        `<div class="label">Error</div>PKCE verifier missing from session.`);
+      return;
+    }
+
+    try {
+      const res = await fetch('https://callback.best/api/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, client_id: CLIENT_ID, code_verifier: verifier }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`${res.status}: ${text}`);
+      }
+
+      const user = await res.json();
+      subtitleEl.textContent = 'Signed in ✓';
+
+      const rows = [
+        ['username', user.preferredUsername],
+        ['name',     user.name],
+        ['email',    user.email],
+        ['verified', user.verified ? 'yes' : 'no'],
+      ].filter(([, v]) => v != null);
+
+      const html = `
+        <div class="label">User info</div>
+        <div class="user-info">
+          ${rows.map(([k,v]) =>
+            `<div class="user-row"><span class="key">${k}</span><span class="val">${v}</span></div>`
+          ).join('')}
+        </div>`;
+
+      setStatus(status, 'success', html);
+      console.log('Signed in as', user.preferredUsername, user);
+    } catch (err) {
+      subtitleEl.textContent = 'Exchange failed';
+      setStatus(status, 'error',
+        `<div class="label">Error</div>${err.message}`);
+    }
+  }
+
+  // ── Router ────────────────────────────────────────────────
+  if (window.location.pathname === '/callback' || window.location.search.includes('code=')) {
+    handleCallback();
+  } else {
+    showPage('login-page');
+  }
+</script>
+
+</body>
+</html>
